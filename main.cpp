@@ -1,5 +1,6 @@
 #include "newton.hpp"
 #include "nonlinear_system.hpp"
+#include "scalar_newton.hpp"
 
 #include <chrono>
 #include <exception>
@@ -10,6 +11,24 @@
 #include <vector>
 
 namespace {
+void print_section_title(const std::string& title) {
+    std::cout << "\n==== " << title << " ====\n";
+}
+
+void print_scalar_newton_result() {
+    const ScalarNewtonResult result = solve_scalar_newton({});
+
+    print_section_title("Scalar Newton method");
+    std::cout << "Equation: (x + 3)cos(x) = 1\n";
+    std::cout << "localized segment: ["
+              << result.segment_left << ", " << result.segment_right << "]\n";
+    std::cout << "converged: " << std::boolalpha << result.converged << '\n';
+    std::cout << "iterations: " << result.iterations << '\n';
+    std::cout << "root: " << std::fixed << std::setprecision(8) << result.root << '\n';
+    std::cout << "|f(x)|: " << std::scientific << result.residual << '\n';
+    std::cout << std::defaultfloat;
+}
+
 void print_vector(const Vector& x) {
     std::cout << std::fixed << std::setprecision(12);
     for (std::size_t i = 0; i < x.size(); ++i) {
@@ -40,10 +59,11 @@ TimedResult run_newton(const Vector& x0, const NewtonOptions& options) {
     return {result, microseconds};
 }
 
-void print_case(const std::string& name, const Vector& x0, const NewtonOptions& options) {
+void print_case(const std::string& name, const Vector& x0, const NewtonOptions& options, bool print_solution) {
     const TimedResult timed = run_newton(x0, options);
     const NewtonResult& result = timed.result;
 
+    std::cout << std::defaultfloat;
     std::cout << "\n" << name << "\n";
     std::cout << "converged: " << std::boolalpha << result.converged << '\n';
     std::cout << "iterations: " << result.iterations << '\n';
@@ -51,7 +71,10 @@ void print_case(const std::string& name, const Vector& x0, const NewtonOptions& 
     std::cout << "||F(x)||_inf: " << result.residual_norm << '\n';
     std::cout << "linear solve operations: " << result.linear_solve_stats.total() << '\n';
     std::cout << "time, us: " << timed.microseconds << '\n';
-    print_vector(result.x);
+
+    if (print_solution) {
+        print_vector(result.x);
+    }
 }
 
 NewtonOptions options_for(std::size_t m, std::size_t k) {
@@ -127,7 +150,7 @@ void run_k_experiments(const Vector& x0) {
     const std::size_t infinity = std::numeric_limits<std::size_t>::max();
     std::vector<ExperimentRow> rows;
 
-    print_table_header("Experiments with k, then modified Newton");
+    print_table_header("Parameter k: full Newton first, modified Newton after that");
 
     // Пункт c): первые k итераций пересчитываем Якоби, потом фиксируем ее.
     for (std::size_t k = 1; k <= 10; ++k) {
@@ -143,7 +166,7 @@ void run_m_experiments(const Vector& x0) {
     const std::vector<std::size_t> periods = {1, 2, 3, 4, 5, 7, 10, infinity};
     std::vector<ExperimentRow> rows;
 
-    print_table_header("Experiments with cyclic m");
+    print_table_header("Parameter m: cyclic Jacobian recalculation");
     // Пункт d): после начального шага пересчитываем Якоби каждые m итераций.
     for (std::size_t m : periods) {
         rows.push_back({m, 1, run_newton(x0, options_for(m, 1))});
@@ -158,7 +181,7 @@ void run_changed_initial_guess_experiments() {
     const Vector x0 = changed_initial_guess();
     std::vector<ExperimentRow> rows;
 
-    print_table_header("Experiments with x5(0) = -0.2");
+    print_table_header("Changed initial guess: x5(0) = -0.2");
     // Пункт f): проверяем поведение при другом x5 и разных k.
     for (std::size_t k = 1; k <= 10; ++k) {
         rows.push_back({infinity, k, run_newton(x0, options_for(infinity, k))});
@@ -173,9 +196,12 @@ int main() {
     try {
         const std::size_t infinity = std::numeric_limits<std::size_t>::max();
 
-        print_case("Full Newton", initial_guess(), options_for(1, infinity));
-        print_case("Modified Newton", initial_guess(), options_for(infinity, 1));
-        print_case("Cyclic Newton, m = 3", initial_guess(), options_for(3, 1));
+        print_scalar_newton_result();
+
+        print_section_title("System Newton methods");
+        print_case("Full Newton", initial_guess(), options_for(1, infinity), true);
+        print_case("Modified Newton", initial_guess(), options_for(infinity, 1), false);
+        print_case("Cyclic Newton, m = 3", initial_guess(), options_for(3, 1), false);
 
         run_k_experiments(initial_guess());
         run_m_experiments(initial_guess());
