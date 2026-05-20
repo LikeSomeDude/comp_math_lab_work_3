@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(main
     main.cpp
     src/scalar_newton.cpp
+    src/small_system.cpp
     src/nonlinear_system.cpp
     src/newton.cpp
     src/linear_solver.cpp

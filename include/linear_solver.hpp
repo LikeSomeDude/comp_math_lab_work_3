@@ -2,26 +2,27 @@
 
 #include "types.hpp"
 
-// Результат LU-разложения с частичным выбором главного элемента.
+// результат LU-разложения с частичным выбором главного элемента
 struct LuFactorization {
-    Matrix l;
-    Matrix u;
-    std::vector<std::size_t> permutation;
-    OperationStats stats;
+  Matrix l;
+  Matrix u;
+  std::vector<std::size_t> permutation; // перестановка
+  OperationStats stats;                 // статистика
 };
 
-// Решение одной СЛАУ и число операций, потраченных на это решение.
+// решение одной СЛАУ и число операций
 struct LinearSolveResult {
-    Vector x;
-    OperationStats stats;
+  Vector x;
+  OperationStats stats;
 };
 
-// Строит LU-разложение матрицы A = P^(-1)LU.
+// строит LU-разложение матрицы
 LuFactorization decompose_lu(Matrix a);
 
-// Решает СЛАУ по уже готовому LU-разложению.
-// Это нужно для модифицированного метода Ньютона, где матрица Якоби не меняется.
-LinearSolveResult solve_with_lu(const LuFactorization& lu, const Vector& b);
+// решает СЛАУ по уже готовому LU-разложению
+// это нужно для модифицированного метода Ньютона, где матрица Якоби не
+// меняется
+LinearSolveResult solve_with_lu(const LuFactorization &lu, const Vector &b);
 
-// Удобная обертка: сразу строит LU-разложение и решает СЛАУ.
+// сразу строит LU-разложение и решает СЛАУ
 LinearSolveResult solve_linear_system_lu(Matrix a, Vector b);
